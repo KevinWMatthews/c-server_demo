@@ -18,7 +18,7 @@ static int tcp_listen(unsigned int port)
     int val = 1;
     int ret;
 
-    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    socket_fd = socket(AF_INET, SOCK_STREAM, 0);        //TODO option 0 means...?
     if (socket_fd < 0)
     {
         perror("Failed to create socket");
@@ -55,6 +55,53 @@ static int tcp_listen(unsigned int port)
     return socket_fd;
 }
 
+static void handle_client(int socket_fd)
+{
+}
+
+static void handle_incoming_connections(int listen_socket)
+{
+    int client_socket_fd;   // Socket for the new client connection.
+    pid_t pid;
+
+    client_socket_fd = accept(listen_socket, 0, 0);     //TODO what do 0 options mean?
+    if (client_socket_fd < 0)
+    {
+        perror("Failed to accept client connection");
+        return;     // Better luck next time.
+    }
+
+    pid = fork();
+    if (pid < 0)
+    {
+        // Error
+        perror("Incoming connection failed to fork");
+        close(client_socket_fd);
+        return;     // Perhaps we can recover...?
+    }
+    else if (pid == 0)
+    {
+        // Child process
+        handle_client(client_socket_fd);
+
+        // Child/client process should exit when it is finished and never return.
+        fprintf(stderr, "Child process leaked!!\n");
+    }
+    else    // pid > 0
+    {
+        // Parent process
+        printf("Server spawned child process: %d\n", pid);
+
+        // Close the socket in the parent/listening process.
+        // It will still open in the child/client process that actually uses it.
+        // The socket must also be closed in the client process.
+        if ( close(client_socket_fd) < 0 )
+        {
+            perror("Parent process failed to close socket");
+        }
+    }
+}
+
 int main(void)
 {
     int listen_socket = SOCKETFD_INVALID;
@@ -62,7 +109,7 @@ int main(void)
     printf("Starting server...\n");
     // Open a socket to listen for new connection requests.
     // Connections will be accepted on a different socket/port.
-    listen_socket = tcp_listen(8484);
+    listen_socket = tcp_listen(8484);       //TODO custom port
     if (listen_socket < 0)
     {
         // If we can't listen for new connections, we have nothing to do.
@@ -71,8 +118,11 @@ int main(void)
     }
     printf("Done\n");
 
-    printf("Listening for connections...\n");
-    //TODO
+    while (1)
+    {
+        printf("Listening for connections...\n");
+        handle_incoming_connections(listen_socket);
+    }
 
     printf("Shutting down server...\n");
     if ( close(listen_socket) < 0 )
