@@ -57,6 +57,21 @@ static int tcp_listen(unsigned int port)
 
 static void handle_client(int socket_fd)
 {
+    pid_t pid = getpid();
+
+    printf("Entering client handler: %d\n", pid);
+    // Do stuff.
+
+    printf("Exiting client handler: %d\n", pid);
+    if ( close(socket_fd) < 0 )
+    {
+        perror("Client handler failed to close socket");
+    }
+
+    // Child processes should call _exit() instead of exit() to avoid
+    // processing cleanup functions and flushing output buffers.
+    // See https://www.gnu.org/software/libc/manual/html_node/Termination-Internals.html#Termination-Internals
+    _exit(EXIT_SUCCESS);
 }
 
 static void handle_incoming_connections(int listen_socket)
@@ -84,7 +99,8 @@ static void handle_incoming_connections(int listen_socket)
         // Child process
         handle_client(client_socket_fd);
 
-        // Child/client process should exit when it is finished and never return.
+        // I have designed the child/client process to clean up and exit when it is finished.
+        // It should never return.
         fprintf(stderr, "Child process leaked!!\n");
     }
     else    // pid > 0
@@ -92,9 +108,11 @@ static void handle_incoming_connections(int listen_socket)
         // Parent process
         printf("Server spawned child process: %d\n", pid);
 
-        // Close the socket in the parent/listening process.
-        // It will still open in the child/client process that actually uses it.
-        // The socket must also be closed in the client process.
+        // Close the socket in the parent/listening process to avoid the sockets lingering in CLOSE_WAIT state
+        // (you can verify this using netstat).
+        //
+        // The socket will still be open in the child/client process, which is where the socket is actually used.
+        // Of course, the socket must also be closed in the child process.
         if ( close(client_socket_fd) < 0 )
         {
             perror("Parent process failed to close socket");
@@ -120,7 +138,7 @@ int main(void)
 
     while (1)
     {
-        printf("Listening for connections...\n");
+        printf("\nListening for connections...\n");
         handle_incoming_connections(listen_socket);
     }
 
