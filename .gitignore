@@ -1,0 +1,2 @@
+# Ignore out-of-tree build directory
+build/*
