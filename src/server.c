@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 // Program configuration
 #define SOCKET_BACKLOG      3
@@ -58,9 +60,27 @@ static int tcp_listen(unsigned int port)
 static void handle_client(int socket_fd)
 {
     pid_t pid = getpid();
+    const char *ping = "ping";
 
     printf("Entering client handler: %d\n", pid);
     // Do stuff.
+
+    while (1)
+    {
+        // If the client closes a connection, send() will generate a SIGPIPE signal.
+        // This will kill the child process with an error.
+        // Pass the MSG_NOSIGNAL flag to cause send() to return an error instead of generating a signal.
+        int flags = 0;
+        ssize_t ret;
+
+        ret = send(socket_fd, ping, sizeof(ping), flags);
+        if (ret < 0)
+        {
+            perror("Failed to ping client");
+            break;
+        }
+        sleep(1);
+    }
 
     printf("Exiting client handler: %d\n", pid);
     if ( close(socket_fd) < 0 )
@@ -117,6 +137,20 @@ static void handle_incoming_connections(int listen_socket)
         {
             perror("Parent process failed to close socket");
         }
+
+        // The parent process is expected to wait for the result of the child process.
+        // If the parent exits, the children will linger as defunct (zombie) processes.
+        int child_status = 0;
+        int options = 0;        // Can use this to figure out what killed the child
+        int ret = 0;
+
+        ret = waitpid(pid, &child_status, options);
+        if (ret < 0)
+        {
+            fprintf(stderr, "Child process failed to terminate: %d\n", pid);
+            return;     //TODO What do we do?
+        }
+        printf("Parent detected child process (%d) exited with status (%d)\n", ret, child_status);
     }
 }
 
