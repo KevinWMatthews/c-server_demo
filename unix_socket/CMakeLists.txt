@@ -4,3 +4,6 @@ add_executable(server_unix
 add_executable(client_unix
     client.c
 )
+add_executable(server_client_unix
+    server_and_client.c
+)
