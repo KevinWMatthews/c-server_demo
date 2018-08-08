@@ -145,19 +145,19 @@ int unix_socket_receive(int socket, char *buffer, size_t buffer_len)
     return 0;
 }
 
-int transmit_data(int socket_fd, const char *buffer)
+int unix_socket_transmit(int socket_fd, const char *buffer, size_t buffer_len)
 {
     ssize_t ret;
+    int flags = 0;   // Something cool in here??
 
     if (buffer == NULL)
     {
         fprintf(stderr, "%s: Buffer may not be null\n", __func__);
         return -1;
     }
+    //TODO buffer_len restriction?
 
-    size_t buffer_len = strlen(buffer) + 1;     // Add the null terminator
-    printf("Sending message (%zu): %s\n", buffer_len, buffer);
-    ret = send(socket_fd, buffer, buffer_len, 0);   // Flags?
+    ret = send(socket_fd, buffer, buffer_len, flags);
     if (ret < 0)
     {
         perror("Failed to send");

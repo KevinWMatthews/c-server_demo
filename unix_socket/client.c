@@ -49,7 +49,9 @@ int main(void)
         exit(EXIT_FAILURE);
     }
 
-    ret = transmit_data(local_socket, buffer);
+    // strlen() or sizeof()?
+    printf("Sending message (%zu): %s\n", strlen(buffer), buffer);
+    ret = unix_socket_transmit(local_socket, buffer, strlen(buffer));
     if (ret < 0)
     {
         fprintf(stderr, "Failed to transmit data. Exiting\n");
