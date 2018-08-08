@@ -13,3 +13,5 @@ unix client:
     parse server/remote socket filename from command line
 
 Can the server detect a socket connection or only when data is received?
+
+Put signal handler in client?
