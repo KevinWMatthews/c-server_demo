@@ -1,5 +1,7 @@
 add_executable(server_unix
     server.c
+    socket_unix.h
+    socket_unix.c
 )
 add_executable(client_unix
     client.c

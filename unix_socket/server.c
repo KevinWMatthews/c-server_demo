@@ -5,37 +5,19 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <signal.h>
+#include "socket_unix.h"
 
-#define SOCKETFD_INVALID    -1
 #define SERVER_SOCKET_FILE  "./server_socket_file"
 
 // Make listen socket file-scope for easy teardown with atexit()
 static int listen_socket = SOCKETFD_INVALID;
 
 
-static void unlink_file(const char *file)
-{
-    if ( unlink(file) < 0 )
-    {
-        perror("Failed to unlink file");
-        fprintf(stderr, "Filename: %s\n", file);
-    }
-}
-
-static void close_file(int fd)
-{
-    if ( close(fd) < 0 )
-    {
-        perror("Failed to close file");
-        fprintf(stderr, "File descriptor: %d\n", fd);
-    }
-}
-
 static void execute_at_exit(void)
 {
     fprintf(stdout, "Tearing down socket...\n");
     unlink_file(SERVER_SOCKET_FILE);
-    close_file(listen_socket);
+    close_file_descriptor(listen_socket);
     fprintf(stdout, "Done\n");
 }
 
@@ -51,54 +33,7 @@ static void sigquit_handler(int signal)
     exit(EXIT_SUCCESS);     // We've registered a signal handler
 }
 
-
-// Returns the socket file descriptor on success (>= 0)
-// Returns -1 on failure.
-static int unix_listen(const char *socket_filename)
-{
-    int socket_fd = SOCKETFD_INVALID;
-    struct sockaddr_un addr = {0};
-    int ret;
-
-    if (socket_filename == NULL)
-    {
-        fprintf(stderr, "Socket filename can not be NULL.\n");
-        return SOCKETFD_INVALID;
-    }
-
-    size_t filename_length = strlen(socket_filename);
-    if (filename_length >= sizeof(addr.sun_path)-1)
-    {
-        fprintf(stderr, "Server socket filename is too long: %s\n", socket_filename);
-        fprintf(stderr, "Is (%zu) characters but can not be greater than (%zu)\n", filename_length, sizeof(addr.sun_path)-1);
-        return SOCKETFD_INVALID;
-    }
-
-    printf("Creating socket file: %s\n", socket_filename);
-
-    socket_fd = socket(PF_UNIX, SOCK_DGRAM, 0);
-    if (socket_fd < 0)
-    {
-        perror("Failed to create socket");
-        return SOCKETFD_INVALID;
-    }
-
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, socket_filename, filename_length);
-
-    // "Everybody else does it this way" - leaving a file behind typically isn't so bad
-    // Try it the hard way to see what I learn.
-    // unlink(/* socket_file */);
-    ret = bind(socket_fd, (struct sockaddr *)&addr, sizeof(addr));
-    if (ret < 0)
-    {
-        perror("Failed to bind socket");
-        return SOCKETFD_INVALID;
-    }
-
-    return socket_fd;
-}
-
+//TODO may be able to extract this
 static void handle_incomming_data(int listen_socket)
 {
     char buffer[1024] = {0};
