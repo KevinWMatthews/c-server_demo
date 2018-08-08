@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <signal.h>
 
 #define SOCKETFD_INVALID    -1
 #define SERVER_SOCKET_FILE  "./server_socket_file"
@@ -76,20 +77,50 @@ static void handle_incomming_data(int listen_socket)
     } while (1);
 }
 
+static void unlink_file(const char *file)
+{
+    if ( unlink(file) < 0 )
+    {
+        perror("Failed to unlink file:");
+        fprintf(stderr, "Filename: %s\n", file);
+    }
+}
+
 static void execute_at_exit(void)
 {
     fprintf(stdout, "Tearing down socket...\n");
-    if ( unlink(SERVER_SOCKET_FILE) < 0 )
-    {
-        perror("Failed to unlink server socket file");
-    }
+    unlink_file(SERVER_SOCKET_FILE);
     fprintf(stdout, "Done\n");
+}
+
+static void sigint_handler(int signal)
+{
+    printf("Caught SIGINT\n");
+    exit(EXIT_SUCCESS);     // We've registered a signal handler
+}
+
+static void sigquit_handler(int signal)
+{
+    printf("Caught SIGQUIT\n");
+    exit(EXIT_SUCCESS);     // We've registered a signal handler
 }
 
 int main(void)
 {
     int listen_socket = SOCKETFD_INVALID;
     int ret;
+
+    // Return type is sighandler_t but I don't know where this is declared
+    if (signal(SIGINT, sigint_handler) == SIG_ERR)
+    {
+        perror("Failed to set SIGINT handler");
+        exit(EXIT_FAILURE);
+    }
+    if (signal(SIGQUIT, sigquit_handler) == SIG_ERR)
+    {
+        perror("Failed to set SIGQUIT handler");
+        exit(EXIT_FAILURE);
+    }
 
     ret = atexit(execute_at_exit);
     if (ret < 0)
