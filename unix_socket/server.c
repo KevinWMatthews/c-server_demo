@@ -74,7 +74,8 @@ int main(void)
         if (ret < 0)
             continue;
 
-        printf("Received data:\n%s\n", buffer);
+        // strlen() or sizeof() or...?
+        printf("Received data (%zu):\n%s\n", strlen(buffer), buffer);
         // Could send data to client
     }
 
