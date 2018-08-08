@@ -54,11 +54,27 @@ static void sigquit_handler(int signal)
 
 // Returns the socket file descriptor on success (>= 0)
 // Returns -1 on failure.
-static int unix_listen(unsigned int port)
+static int unix_listen(const char *socket_filename)
 {
     int socket_fd = SOCKETFD_INVALID;
     struct sockaddr_un addr = {0};
     int ret;
+
+    if (socket_filename == NULL)
+    {
+        fprintf(stderr, "Socket filename can not be NULL.\n");
+        return SOCKETFD_INVALID;
+    }
+
+    size_t filename_length = strlen(socket_filename);
+    if (filename_length >= sizeof(addr.sun_path)-1)
+    {
+        fprintf(stderr, "Server socket filename is too long: %s\n", socket_filename);
+        fprintf(stderr, "Is (%zu) characters but can not be greater than (%zu)\n", filename_length, sizeof(addr.sun_path)-1);
+        return SOCKETFD_INVALID;
+    }
+
+    printf("Creating socket file: %s\n", socket_filename);
 
     socket_fd = socket(PF_UNIX, SOCK_DGRAM, 0);
     if (socket_fd < 0)
@@ -68,17 +84,11 @@ static int unix_listen(unsigned int port)
     }
 
     addr.sun_family = AF_UNIX;
-    if (sizeof(SERVER_SOCKET_FILE) >= sizeof(addr.sun_path))
-    {
-        fprintf(stderr, "Server socket filename is too long\n");
-        return SOCKETFD_INVALID;
-    }
-
-    strncpy(addr.sun_path, SERVER_SOCKET_FILE, sizeof(SERVER_SOCKET_FILE));
+    strncpy(addr.sun_path, socket_filename, filename_length);
 
     // "Everybody else does it this way" - leaving a file behind typically isn't so bad
     // Try it the hard way to see what I learn.
-    // unlink(SERVER_SOCKET_FILE);
+    // unlink(/* socket_file */);
     ret = bind(socket_fd, (struct sockaddr *)&addr, sizeof(addr));
     if (ret < 0)
     {
@@ -143,7 +153,7 @@ int main(void)
 
     printf("Starting server...\n");
     // Open a socket to listen for new connection requests.
-    listen_socket = unix_listen(9191);
+    listen_socket = unix_listen(SERVER_SOCKET_FILE);
     if (listen_socket < 0)
     {
         // If we can't listen for new connections, we have nothing to do.
