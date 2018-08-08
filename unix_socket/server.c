@@ -33,36 +33,6 @@ static void sigquit_handler(int signal)
     exit(EXIT_SUCCESS);     // We've registered a signal handler
 }
 
-//TODO may be able to extract this
-static void handle_incomming_data(int listen_socket)
-{
-    char buffer[1024] = {0};
-    int flags = 0;      // Anything useful here?
-
-    do
-    {
-        struct sockaddr_un from = {0};
-        socklen_t from_length = sizeof(from);
-        int len = 0;
-
-        // Could use:
-        //  len = recv(listen_socket, buffer, sizeof(buffer), flags);
-        //  but this is typically used for a connected socket.
-        len = recvfrom(listen_socket, buffer, sizeof(buffer), flags, (struct sockaddr *)&from, &from_length);
-        if (len < 0)
-        {
-            perror("Failed to read from socket");
-            break;
-        }
-        else if (len == 0)
-        {
-            ;       // 0-length datagrams are permitted (see `man 2 recvfrom`)
-        }
-        printf("Received data:\n%s\n", buffer);
-        //TODO parse address from sockaddr
-    } while (1);
-}
-
 int main(void)
 {
     int ret;

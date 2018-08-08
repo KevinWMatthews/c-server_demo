@@ -113,6 +113,35 @@ int unix_connect(int local_socket, const char *socket_filename)
     return 0;
 }
 
+void handle_incomming_data(int listen_socket)
+{
+    char buffer[1024] = {0};
+    int flags = 0;      // Anything useful here?
+
+    do
+    {
+        struct sockaddr_un from = {0};
+        socklen_t from_length = sizeof(from);
+        int len = 0;
+
+        // Could use:
+        //  len = recv(listen_socket, buffer, sizeof(buffer), flags);
+        //  but this is typically used for a connected socket.
+        len = recvfrom(listen_socket, buffer, sizeof(buffer), flags, (struct sockaddr *)&from, &from_length);
+        if (len < 0)
+        {
+            perror("Failed to read from socket");
+            break;
+        }
+        else if (len == 0)
+        {
+            ;       // 0-length datagrams are permitted (see `man 2 recvfrom`)
+        }
+        printf("Received data:\n%s\n", buffer);
+        //TODO parse address from sockaddr
+    } while (1);
+}
+
 int transmit_data(int socket_fd, const char *buffer)
 {
     ssize_t ret;
