@@ -32,8 +32,10 @@ int unix_listen(unsigned int port)
     }
 
     strncpy(addr.sun_path, SERVER_SOCKET_FILE, sizeof(SERVER_SOCKET_FILE));
-    unlink(SERVER_SOCKET_FILE);     // According to the docs you can do this at any time - when it is no longer needed.
 
+    // "Everybody else does it this way" - leaving a file behind typically isn't so bad
+    // Try it the hard way to see what I learn.
+    // unlink(SERVER_SOCKET_FILE);
     ret = bind(socket_fd, (struct sockaddr *)&addr, sizeof(addr));
     if (ret < 0)
     {
@@ -63,7 +65,11 @@ int main(void)
     if ( close(listen_socket) < 0 )
     {
         perror("Failed to close listen socket on shutdown");
-        exit(EXIT_FAILURE);
     }
+    if ( unlink(SERVER_SOCKET_FILE) < 0 )
+    {
+        perror("Failed to unlink server socket file");
+    }
+
     return 0;
 }
