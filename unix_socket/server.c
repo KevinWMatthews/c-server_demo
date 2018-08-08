@@ -165,6 +165,7 @@ int main(void)
     while (1)
     {
         handle_incomming_data(listen_socket);
+        // Could send data to client
     }
 
     return 0;

@@ -7,6 +7,7 @@
 
 #define SOCKETFD_INVALID    -1
 #define CLIENT_SOCKET_FILE  "./client_socket_file"
+#define SERVER_SOCKET_FILE  "./server_socket_file"      //TODO parse this from the command line
 
 static int local_socket = SOCKETFD_INVALID;
 
@@ -102,8 +103,56 @@ static int unix_listen(const char *socket_filename)
     return socket_fd;
 }
 
+// Connect to a remote socket
+// Returns 0 on success, -1 on failure
+static int unix_connect(int local_socket, const char *socket_filename)
+{
+    struct sockaddr_un remote_addr = {0};
+    socklen_t remote_addr_len = sizeof(remote_addr);
+    int ret;
+
+    remote_addr.sun_family = AF_UNIX;
+    ret = copy_unix_socket_filename(&remote_addr, socket_filename);
+    if (ret < 0)
+    {
+        fprintf(stderr, "Invalid socket filename\n");
+        return -1;
+    }
+
+    ret = connect(local_socket, (struct sockaddr *)&remote_addr, remote_addr_len);
+    if (ret < 0)
+    {
+        perror("Failed to connect to socket");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int transmit_data(int socket_fd, const char *buffer)
+{
+    ssize_t ret;
+
+    if (buffer == NULL)
+    {
+        fprintf(stderr, "%s: Buffer may not be null\n", __func__);
+        return -1;
+    }
+
+    size_t buffer_len = strlen(buffer) + 1;     // Add the null terminator
+    printf("Sending message (%zu): %s\n", buffer_len, buffer);
+    ret = send(socket_fd, buffer, buffer_len, 0);   // Flags?
+    if (ret < 0)
+    {
+        perror("Failed to send");
+        return -1;
+    }
+    return 0;
+}
+
 int main(void)
 {
+    const char buffer[] = {"This is from a client"};
     int ret;
 
     ret = atexit(execute_at_exit);
@@ -120,5 +169,24 @@ int main(void)
         fprintf(stderr, "Failed to create socket. Exiting.\n");
         exit(EXIT_FAILURE);
     }
+    printf("Done.\n");
+
+    printf("Connecting to server socket\n");
+    ret = unix_connect(local_socket, SERVER_SOCKET_FILE);
+    if (ret < 0)
+    {
+        fprintf(stderr, "Failed to connect to socket. Exiting\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ret = transmit_data(local_socket, buffer);
+    if (ret < 0)
+    {
+        fprintf(stderr, "Failed to transmit data. Exiting\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Could receive data here
+
     return 0;
 }

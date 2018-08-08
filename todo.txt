@@ -8,3 +8,5 @@ unix server:
 unix client:
     parse client/local socket filename from command line
     parse server/remote socket filename from command line
+
+Can the server detect a socket connection or only when data is received?
