@@ -1,3 +1,6 @@
+valgrind --track-fds=yes ./bin/<program>
+# --leak-check=yes
+
 Add customizable listen port to to tcp demo.
     Parse this from the command line.
 
