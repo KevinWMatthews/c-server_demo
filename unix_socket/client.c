@@ -37,6 +37,32 @@ static void execute_at_exit(void)
 }
 
 
+static int copy_unix_socket_filename(struct sockaddr_un *addr, const char *filename)
+{
+    if (addr == NULL)
+    {
+        fprintf(stderr, "Socket address can not be NULL\n");
+        return -1;
+    }
+    if (filename == NULL)
+    {
+        fprintf(stderr, "Socket filename can not be NULL.\n");
+        return -1;
+    }
+
+    size_t length = strlen(filename);
+    if (length >= sizeof(addr->sun_path)-1)
+    {
+        fprintf(stderr, "Server socket filename is too long: %s\n", filename);
+        fprintf(stderr, "Is (%zu) characters but can not be greater than (%zu)\n", length, sizeof(addr->sun_path)-1);
+        return -1;
+    }
+
+    addr->sun_family = AF_UNIX;
+    strncpy(addr->sun_path, filename, length);
+
+    return 0;
+}
 
 
 // Returns the socket file descriptor on success (>= 0)
@@ -47,21 +73,14 @@ static int unix_listen(const char *socket_filename)
     struct sockaddr_un addr = {0};
     int ret;
 
-    if (socket_filename == NULL)
-    {
-        fprintf(stderr, "Socket filename can not be NULL.\n");
-        return SOCKETFD_INVALID;
-    }
-
-    size_t filename_length = strlen(socket_filename);
-    if (filename_length >= sizeof(addr.sun_path)-1)
-    {
-        fprintf(stderr, "Server socket filename is too long: %s\n", socket_filename);
-        fprintf(stderr, "Is (%zu) characters but can not be greater than (%zu)\n", filename_length, sizeof(addr.sun_path)-1);
-        return SOCKETFD_INVALID;
-    }
-
     printf("Creating socket file: %s\n", socket_filename);
+
+    ret = copy_unix_socket_filename(&addr, socket_filename);
+    if (ret < 0)
+    {
+        fprintf(stderr, "Invalid socket filename\n");
+        return SOCKETFD_INVALID;
+    }
 
     socket_fd = socket(PF_UNIX, SOCK_DGRAM, 0);
     if (socket_fd < 0)
@@ -69,9 +88,6 @@ static int unix_listen(const char *socket_filename)
         perror("Failed to create socket");
         return SOCKETFD_INVALID;
     }
-
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, socket_filename, filename_length);
 
     // "Everybody else does it this way" - leaving a file behind typically isn't so bad
     // Try it the hard way to see what I learn.

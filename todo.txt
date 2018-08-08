@@ -1,2 +1,10 @@
 Add customizable listen port to to tcp demo.
     Parse this from the command line.
+
+unix_listen() is common between client and server?
+
+unix server:
+    parse socket filename from command line
+unix client:
+    parse client/local socket filename from command line
+    parse server/remote socket filename from command line
