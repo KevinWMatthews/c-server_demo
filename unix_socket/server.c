@@ -1,11 +1,9 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
+#include "socket_unix.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <signal.h>
-#include "socket_unix.h"
 
 #define SERVER_SOCKET_FILE  "./server_socket_file"
 

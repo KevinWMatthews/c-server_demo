@@ -1,10 +1,8 @@
 #include "socket_unix.h"
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define SOCKETFD_INVALID    -1
 #define CLIENT_SOCKET_FILE  "./client_socket_file"
