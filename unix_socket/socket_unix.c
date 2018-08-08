@@ -113,33 +113,36 @@ int unix_connect(int local_socket, const char *socket_filename)
     return 0;
 }
 
-void handle_incomming_data(int listen_socket)
+int unix_socket_receive(int socket, char *buffer, size_t buffer_len)
 {
-    char buffer[1024] = {0};
-    int flags = 0;      // Anything useful here?
-
-    do
+    if (buffer == NULL)
     {
-        struct sockaddr_un from = {0};
-        socklen_t from_length = sizeof(from);
-        int len = 0;
+        fprintf(stderr, "%s: buffer can not be null\n", __func__);
+        return -1;
+    }
+    //TODO buffer_len restriction?
 
-        // Could use:
-        //  len = recv(listen_socket, buffer, sizeof(buffer), flags);
-        //  but this is typically used for a connected socket.
-        len = recvfrom(listen_socket, buffer, sizeof(buffer), flags, (struct sockaddr *)&from, &from_length);
-        if (len < 0)
-        {
-            perror("Failed to read from socket");
-            break;
-        }
-        else if (len == 0)
-        {
-            ;       // 0-length datagrams are permitted (see `man 2 recvfrom`)
-        }
-        printf("Received data:\n%s\n", buffer);
-        //TODO parse address from sockaddr
-    } while (1);
+    struct sockaddr_un from = {0};
+    socklen_t from_length = sizeof(from);
+    int flags = 0;      // Anything useful here?
+    int len = 0;
+
+    // Could use:
+    //  len = recv(listen_socket, buffer, sizeof(buffer), flags);
+    //  but this is typically used for a connected socket.
+    len = recvfrom(socket, buffer, buffer_len, flags, (struct sockaddr *)&from, &from_length);
+    if (len < 0)
+    {
+        perror("Failed to read from socket");
+        return -1;
+    }
+    else if (len == 0)
+    {
+        ;       // 0-length datagrams are permitted (see `man 2 recvfrom`)
+    }
+    //TODO parse address from sockaddr
+
+    return 0;
 }
 
 int transmit_data(int socket_fd, const char *buffer)

@@ -69,7 +69,12 @@ int main(void)
 
     while (1)
     {
-        handle_incomming_data(listen_socket);
+        char buffer[1024] = {0};
+        ret = unix_socket_receive(listen_socket, buffer, sizeof(buffer));
+        if (ret < 0)
+            continue;
+
+        printf("Received data:\n%s\n", buffer);
         // Could send data to client
     }
 
