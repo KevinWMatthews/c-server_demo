@@ -1,6 +1,6 @@
-add_executable(server
+add_executable(server_tcp
     server.c
 )
-add_executable(client
+add_executable(client_tcp
     client.c
 )
