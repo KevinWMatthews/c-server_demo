@@ -9,6 +9,49 @@
 #define SOCKETFD_INVALID    -1
 #define SERVER_SOCKET_FILE  "./server_socket_file"
 
+// Make listen socket file-scope for easy teardown with atexit()
+static int listen_socket = SOCKETFD_INVALID;
+
+
+static void unlink_file(const char *file)
+{
+    if ( unlink(file) < 0 )
+    {
+        perror("Failed to unlink file");
+        fprintf(stderr, "Filename: %s\n", file);
+    }
+}
+
+static void close_file(int fd)
+{
+    if ( close(fd) < 0 )
+    {
+        perror("Failed to close file");
+        fprintf(stderr, "File descriptor: %d\n", fd);
+    }
+}
+
+static void execute_at_exit(void)
+{
+    fprintf(stdout, "Tearing down socket...\n");
+    unlink_file(SERVER_SOCKET_FILE);
+    close_file(listen_socket);
+    fprintf(stdout, "Done\n");
+}
+
+static void sigint_handler(int signal)
+{
+    printf("Caught SIGINT\n");
+    exit(EXIT_SUCCESS);     // We've registered a signal handler
+}
+
+static void sigquit_handler(int signal)
+{
+    printf("Caught SIGQUIT\n");
+    exit(EXIT_SUCCESS);     // We've registered a signal handler
+}
+
+
 // Returns the socket file descriptor on success (>= 0)
 // Returns -1 on failure.
 static int unix_listen(unsigned int port)
@@ -28,8 +71,7 @@ static int unix_listen(unsigned int port)
     if (sizeof(SERVER_SOCKET_FILE) >= sizeof(addr.sun_path))
     {
         fprintf(stderr, "Server socket filename is too long\n");
-        close(socket_fd);
-        return -1;
+        return SOCKETFD_INVALID;
     }
 
     strncpy(addr.sun_path, SERVER_SOCKET_FILE, sizeof(SERVER_SOCKET_FILE));
@@ -41,7 +83,6 @@ static int unix_listen(unsigned int port)
     if (ret < 0)
     {
         perror("Failed to bind socket");
-        close(socket_fd);
         return SOCKETFD_INVALID;
     }
 
@@ -77,37 +118,8 @@ static void handle_incomming_data(int listen_socket)
     } while (1);
 }
 
-static void unlink_file(const char *file)
-{
-    if ( unlink(file) < 0 )
-    {
-        perror("Failed to unlink file:");
-        fprintf(stderr, "Filename: %s\n", file);
-    }
-}
-
-static void execute_at_exit(void)
-{
-    fprintf(stdout, "Tearing down socket...\n");
-    unlink_file(SERVER_SOCKET_FILE);
-    fprintf(stdout, "Done\n");
-}
-
-static void sigint_handler(int signal)
-{
-    printf("Caught SIGINT\n");
-    exit(EXIT_SUCCESS);     // We've registered a signal handler
-}
-
-static void sigquit_handler(int signal)
-{
-    printf("Caught SIGQUIT\n");
-    exit(EXIT_SUCCESS);     // We've registered a signal handler
-}
-
 int main(void)
 {
-    int listen_socket = SOCKETFD_INVALID;
     int ret;
 
     // Return type is sighandler_t but I don't know where this is declared
@@ -143,11 +155,6 @@ int main(void)
     while (1)
     {
         handle_incomming_data(listen_socket);
-    }
-
-    if ( close(listen_socket) < 0 )
-    {
-        perror("Failed to close listen socket on shutdown");
     }
 
     return 0;
