@@ -58,7 +58,7 @@ int main(void)
 
     printf("Starting server...\n");
     // Open a socket to listen for new connection requests.
-    listen_socket = unix_listen(SERVER_SOCKET_FILE);
+    listen_socket = unix_socket_listen(SERVER_SOCKET_FILE);
     if (listen_socket < 0)
     {
         // If we can't listen for new connections, we have nothing to do.

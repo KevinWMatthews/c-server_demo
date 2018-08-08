@@ -32,7 +32,7 @@ int main(void)
         exit(EXIT_FAILURE);
     }
 
-    local_socket = unix_listen(CLIENT_SOCKET_FILE);
+    local_socket = unix_socket_listen(CLIENT_SOCKET_FILE);
     if (local_socket < 0)
     {
         // If we can't listen for new connections, we have nothing to do.
@@ -42,7 +42,7 @@ int main(void)
     printf("Done.\n");
 
     printf("Connecting to server socket\n");
-    ret = unix_connect(local_socket, SERVER_SOCKET_FILE);
+    ret = unix_socket_connect(local_socket, SERVER_SOCKET_FILE);
     if (ret < 0)
     {
         fprintf(stderr, "Failed to connect to socket. Exiting\n");

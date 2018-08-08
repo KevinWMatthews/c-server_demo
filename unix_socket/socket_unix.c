@@ -50,9 +50,7 @@ static int copy_unix_socket_filename(struct sockaddr_un *addr, const char *filen
     return 0;
 }
 
-// Returns the socket file descriptor on success (>= 0)
-// Returns -1 on failure.
-int unix_listen(const char *socket_filename)
+int unix_socket_listen(const char *socket_filename)
 {
     int socket_fd = SOCKETFD_INVALID;
     struct sockaddr_un addr = {0};
@@ -87,9 +85,7 @@ int unix_listen(const char *socket_filename)
     return socket_fd;
 }
 
-// Connect to a remote socket
-// Returns 0 on success, -1 on failure
-int unix_connect(int local_socket, const char *socket_filename)
+int unix_socket_connect(int local_socket, const char *socket_filename)
 {
     struct sockaddr_un remote_addr = {0};
     socklen_t remote_addr_len = sizeof(remote_addr);
