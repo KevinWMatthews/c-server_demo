@@ -10,7 +10,7 @@
 
 // Returns the socket file descriptor on success (>= 0)
 // Returns -1 on failure.
-int unix_listen(unsigned int port)
+static int unix_listen(unsigned int port)
 {
     int socket_fd = SOCKETFD_INVALID;
     struct sockaddr_un addr = {0};
@@ -47,9 +47,56 @@ int unix_listen(unsigned int port)
     return socket_fd;
 }
 
+static void handle_incomming_data(int listen_socket)
+{
+    char buffer[1024] = {0};
+    int flags = 0;      // Anything useful here?
+
+    do
+    {
+        struct sockaddr_un from = {0};
+        socklen_t from_length = sizeof(from);
+        int len = 0;
+
+        // Could use:
+        //  len = recv(listen_socket, buffer, sizeof(buffer), flags);
+        //  but this is typically used for a connected socket.
+        len = recvfrom(listen_socket, buffer, sizeof(buffer), flags, (struct sockaddr *)&from, &from_length);
+        if (len < 0)
+        {
+            perror("Failed to read from socket");
+            break;
+        }
+        else if (len == 0)
+        {
+            ;       // 0-length datagrams are permitted (see `man 2 recvfrom`)
+        }
+        printf("Received data:\n%s\n", buffer);
+        //TODO parse address from sockaddr
+    } while (1);
+}
+
+static void execute_at_exit(void)
+{
+    fprintf(stdout, "Tearing down socket...\n");
+    if ( unlink(SERVER_SOCKET_FILE) < 0 )
+    {
+        perror("Failed to unlink server socket file");
+    }
+    fprintf(stdout, "Done\n");
+}
+
 int main(void)
 {
     int listen_socket = SOCKETFD_INVALID;
+    int ret;
+
+    ret = atexit(execute_at_exit);
+    if (ret < 0)
+    {
+        fprintf(stderr, "Failed to set exit handler\n");
+        exit(EXIT_FAILURE);
+    }
 
     printf("Starting server...\n");
     // Open a socket to listen for new connection requests.
@@ -62,13 +109,14 @@ int main(void)
     }
     printf("Done\n");
 
+    while (1)
+    {
+        handle_incomming_data(listen_socket);
+    }
+
     if ( close(listen_socket) < 0 )
     {
         perror("Failed to close listen socket on shutdown");
-    }
-    if ( unlink(SERVER_SOCKET_FILE) < 0 )
-    {
-        perror("Failed to unlink server socket file");
     }
 
     return 0;
